@@ -1,12 +1,9 @@
-
 ApiApe
 ===================
 
 ApiApe makes your APIs so easy to use that even an ape could use them.
 
 ### Table of contents
-
-You can insert a table of contents using the marker `[TOC]`:
 
 [TOC]
 
