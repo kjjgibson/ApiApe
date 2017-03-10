@@ -86,7 +86,31 @@ module ApiApe
 
     def load_collection
       #TODO: this should be fleshed out to provide where queries and joins
-      resource_class.all
+
+      collection = resource_class.all
+
+      order_string = @params[:order]
+      if order_string.present?
+        order_parts = order_string.split('(')
+        if order_parts.count < 2
+          #TODO: Add a warning that the ordering was malformed
+        else
+          order_column = order_parts[0]
+          order_direction = order_parts[1].try(:gsub, ')', '')
+
+          if resource_class.column_names.include?(order_column)
+            if ['asc', 'desc'].include?(order_direction)
+              collection = collection.order("#{order_column} #{order_direction}")
+            else
+              #TODO: add a warning that the order direction is invalid
+            end
+          else
+            #TODO: add a warning that the column doesn't exist
+          end
+        end
+      end
+
+      return collection
     end
 
     def build_resource

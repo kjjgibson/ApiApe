@@ -20,21 +20,34 @@ describe ApiApe::ApeRenderer do
       end
 
       def example_many_association
-        return [DummyNestedModel.new(1, 2), DummyNestedModel.new(3, 4)]
+        return [DummyNestedModel.new(1, 2, created_at: Date.current - 1.day), DummyNestedModel.new(3, 4, created_at: Date.current)]
+      end
+
+      def unorderable_association
+        return [UnorderableModel.new(1), UnorderableModel.new(2)]
       end
 
     end
 
     class DummyNestedModel
-      attr_accessor :nested_field1, :nested_field2
+      attr_accessor :nested_field1, :nested_field2, :created_at
 
-      def initialize(nested_field1, nested_field2)
+      def initialize(nested_field1, nested_field2, created_at: nil)
         @nested_field1 = nested_field1
         @nested_field2 = nested_field2
+        @created_at = created_at
       end
 
       def example_doubly_nested_association
         return DummyNestedModel.new(5, 6)
+      end
+    end
+
+    class UnorderableModel
+      attr_accessor :field
+
+      def initialize(field)
+        @field = field
       end
     end
 
@@ -240,6 +253,72 @@ describe ApiApe::ApeRenderer do
             })
 
             ape_renderer.render_ape(controller, params, model)
+          end
+
+          context 'with an association ordering' do
+            let(:params) { { fields: "example_many_association{nested_field1,nested_field2}.order(#{ordering})" } }
+
+            context 'chronological ordering' do
+              let(:ordering) { 'chronological'}
+
+              it 'should call render with the objects in chronological order' do
+                expect(controller).to receive(:render).with(json: {
+                    example_many_association: [
+                        { nested_field1: 3, nested_field2: 4 },
+                        { nested_field1: 1, nested_field2: 2 }
+                    ]
+                })
+
+                ape_renderer.render_ape(controller, params, model)
+              end
+            end
+
+            context 'reverse chronological ordering' do
+              let(:ordering) { 'reverse_chronological'}
+
+              it 'should call render with the objects in reverse chronological order' do
+                expect(controller).to receive(:render).with(json: {
+                    example_many_association: [
+                        { nested_field1: 1, nested_field2: 2 },
+                        { nested_field1: 3, nested_field2: 4 }
+                    ]
+                })
+
+                ape_renderer.render_ape(controller, params, model)
+              end
+            end
+
+            context 'invalid ordering string' do
+              let(:ordering) { 'invalid_ordering'}
+
+              it 'should call render with the objects in default order' do
+                expect(controller).to receive(:render).with(json: {
+                    example_many_association: [
+                        { nested_field1: 1, nested_field2: 2 },
+                        { nested_field1: 3, nested_field2: 4 }
+                    ]
+                })
+
+                ape_renderer.render_ape(controller, params, model)
+              end
+            end
+
+            context 'collection without created_at' do
+              let(:params) { { fields: 'unorderable_association{field}.order(chronological)' } }
+
+              it 'should call render with the objects in default order' do
+                expect(controller).to receive(:render).with(json: {
+                    unorderable_association: [
+                        { field: 1 },
+                        { field: 2 }
+                    ]
+                })
+
+                ape_renderer.render_ape(controller, params, model)
+              end
+            end
+
+            #TODO: working here ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
           end
         end
       end

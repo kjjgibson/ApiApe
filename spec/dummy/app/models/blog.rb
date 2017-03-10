@@ -1,7 +1,5 @@
 class Blog < ActiveRecord::Base
 
-  def giraffe
-    puts 'giraffe'
-  end
+  has_many :posts
 
 end
