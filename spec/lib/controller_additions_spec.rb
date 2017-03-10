@@ -88,7 +88,7 @@ describe ApiApe::ControllerAdditions do
     context 'no args' do
       context 'class permitted_fields is nil' do
         it 'should call the render_ape method' do
-          expect_any_instance_of(ApeRenderer).to receive(:render_ape).with(controller_additions, params, {}, object_to_render)
+          expect_any_instance_of(ApiApe::ApeRenderer).to receive(:render_ape).with(controller_additions, params, object_to_render)
 
           controller_additions.render_ape(object_to_render)
         end
@@ -100,7 +100,8 @@ describe ApiApe::ControllerAdditions do
         end
 
         it 'should use the class permitted fields' do
-          expect_any_instance_of(ApeRenderer).to receive(:render_ape).with(controller_additions, params, { permitted_fields: [:title, :description] }, object_to_render)
+          expect(ApiApe::ApeRenderer).to receive(:new).with([:title, :description]).and_call_original
+          expect_any_instance_of(ApiApe::ApeRenderer).to receive(:render_ape).with(controller_additions, params, object_to_render)
 
           controller_additions.render_ape(object_to_render)
         end
@@ -110,7 +111,8 @@ describe ApiApe::ControllerAdditions do
     context 'with permitted_fields arg' do
       context 'class permitted_fields is nil' do
         it 'should use the permitted fields' do
-          expect_any_instance_of(ApeRenderer).to receive(:render_ape).with(controller_additions, params, { permitted_fields: [:title] }, object_to_render)
+          expect(ApiApe::ApeRenderer).to receive(:new).with([:title]).and_call_original
+          expect_any_instance_of(ApiApe::ApeRenderer).to receive(:render_ape).with(controller_additions, params, object_to_render)
 
           controller_additions.render_ape(object_to_render, permitted_fields: [:title])
         end
@@ -122,7 +124,8 @@ describe ApiApe::ControllerAdditions do
         end
 
         it 'should use the permitted fields passed in' do
-          expect_any_instance_of(ApeRenderer).to receive(:render_ape).with(controller_additions, params, { permitted_fields: [:title] }, object_to_render)
+          expect(ApiApe::ApeRenderer).to receive(:new).with([:title]).and_call_original
+          expect_any_instance_of(ApiApe::ApeRenderer).to receive(:render_ape).with(controller_additions, params, object_to_render)
 
           controller_additions.render_ape(object_to_render, permitted_fields: [:title])
         end

@@ -179,13 +179,10 @@ module ApiApe
     def render_ape(obj, *args)
       options = args.extract_options!
 
-      # If we have set global permitted_fields and there were none passed in the options,
-      #  then use the global ones
-      if self.class.permitted_fields && !options[:permitted_fields]
-        options[:permitted_fields] = self.class.permitted_fields
-      end
+      # If we have set global permitted_fields and there were none passed in the options, then use the global ones
+      permitted_fields = options[:permitted_fields] || self.class.permitted_fields
 
-      ApeRenderer.new.render_ape(self, params, options, obj)
+      ApeRenderer.new(permitted_fields).render_ape(self, params, obj)
     end
 
     def self.included(base)
