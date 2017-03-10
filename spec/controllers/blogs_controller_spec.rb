@@ -31,6 +31,38 @@ describe BlogsController do
 
         expect(assigns(:blogs)).to eq([blog, blog2])
       end
+
+      context 'order ascending' do
+        it 'should return the correct order' do
+          get :index, fields: fields, order: 'title(asc)'
+
+          expect(assigns(:blogs)).to eq([blog, blog2])
+        end
+      end
+
+      context 'order descending' do
+        it 'should return the correct order' do
+          get :index, fields: fields, order: 'title(desc)'
+
+          expect(assigns(:blogs)).to eq([blog2, blog])
+        end
+      end
+
+      context 'order by a column that doesn\'t exist' do
+        it 'should return the default order' do
+          get :index, fields: fields, order: 'wrong_column(asc)'
+
+          expect(assigns(:blogs)).to eq([blog, blog2])
+        end
+      end
+
+      context 'order with an invalid sort direction' do
+        it 'should return the default order' do
+          get :index, fields: fields, order: 'title(wrong_order)'
+
+          expect(assigns(:blogs)).to eq([blog, blog2])
+        end
+      end
     end
   end
 
@@ -83,6 +115,49 @@ describe BlogsController do
           expect(response_body).to eq({ title: blog.title })
         end
       end
+    end
+
+    context 'with nested permitted_fields' do
+      let(:fields) { 'title,posts{content}' }
+
+      # Update the BlogsControllerClass so that it calls render_ape with permitted fields
+      controller(BlogsController) do
+        render_ape permitted_fields: [:title, posts: :content]
+      end
+
+      before do
+        Post.create(content: 'Post1 Content', blog: blog, created_at: Date.current - 2.days)
+        Post.create(content: 'Post2 Content', blog: blog, created_at: Date.current - 1.day)
+        controller.instance_variable_set(:@blog, blog)
+      end
+
+      describe '#show' do
+        context 'with no ordering' do
+          it 'should return the posts in the default order' do
+            get :show, id: blog.id, fields: fields
+
+            expect(response_body).to eq({ title: blog.title, posts: [
+                { content: 'Post1 Content' },
+                { content: 'Post2 Content' }
+            ] })
+          end
+        end
+
+        context 'with an ordering' do
+          let(:fields) { 'title,posts{content}.order(reverse_chronological)' }
+
+          it 'should return the posts in the correct order' do
+            get :show, id: blog.id, fields: fields
+
+            expect(response_body).to eq({ title: blog.title,
+                                          posts: [
+                                              { content: 'Post2 Content' },
+                                              { content: 'Post1 Content' }
+                                          ] })
+          end
+        end
+      end
+
     end
   end
 
