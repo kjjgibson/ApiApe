@@ -1,7 +1,7 @@
 require 'rails_helper'
-require 'api_ape/controller_resource'
+require 'api_ape/controller_ape'
 
-describe ApiApe::ControllerResource do
+describe ApiApe::ControllerApe do
 
   #A Dummy controller that we can use to test the filters
   class DummyController
@@ -36,7 +36,7 @@ describe ApiApe::ControllerResource do
 
   describe '.add_before_filter' do
     before do
-      allow_any_instance_of(ApiApe::ControllerResource).to receive(:load_resource)
+      allow_any_instance_of(ApiApe::ControllerApe).to receive(:load_resource)
     end
 
     context 'prepend not specified' do
@@ -44,13 +44,13 @@ describe ApiApe::ControllerResource do
         it 'should call the before_filter method on the class provided' do
           expect(DummyController).to receive(:before_filter).with({})
 
-          ApiApe::ControllerResource.add_before_filter(DummyController, :load_resource)
+          ApiApe::ControllerApe.add_before_filter(DummyController, :load_resource)
         end
 
         it 'should call the method' do
-          expect_any_instance_of(ApiApe::ControllerResource).to receive(:load_resource)
+          expect_any_instance_of(ApiApe::ControllerApe).to receive(:load_resource)
 
-          ApiApe::ControllerResource.add_before_filter(DummyController, :load_resource)
+          ApiApe::ControllerApe.add_before_filter(DummyController, :load_resource)
         end
       end
 
@@ -60,7 +60,7 @@ describe ApiApe::ControllerResource do
 
           expect(DummyController).to receive(:before_filter).with(extra_args)
 
-          ApiApe::ControllerResource.add_before_filter(DummyController, :load_resource, extra_args)
+          ApiApe::ControllerApe.add_before_filter(DummyController, :load_resource, extra_args)
         end
       end
 
@@ -70,7 +70,7 @@ describe ApiApe::ControllerResource do
 
           expect(DummyController).to receive(:before_filter).with({ only: :only_value })
 
-          ApiApe::ControllerResource.add_before_filter(DummyController, :load_resource, extra_args)
+          ApiApe::ControllerApe.add_before_filter(DummyController, :load_resource, extra_args)
         end
       end
     end
@@ -79,14 +79,14 @@ describe ApiApe::ControllerResource do
       it 'should call the before_filter method on the class provided' do
         expect(DummyController).to receive(:prepend_before_filter).with({})
 
-        ApiApe::ControllerResource.add_before_filter(DummyController, :load_resource, prepend: true)
+        ApiApe::ControllerApe.add_before_filter(DummyController, :load_resource, prepend: true)
       end
     end
   end
 
   describe '.add_around_filter' do
     before do
-      allow_any_instance_of(ApiApe::ControllerResource).to receive(:load_and_render_ape)
+      allow_any_instance_of(ApiApe::ControllerApe).to receive(:load_and_render_ape)
     end
 
     context 'prepend not specified' do
@@ -94,20 +94,20 @@ describe ApiApe::ControllerResource do
         it 'should call the around_filter method on the class provided' do
           expect(DummyController).to receive(:around_filter).with({})
 
-          ApiApe::ControllerResource.add_around_filter(DummyController, :load_and_render_ape)
+          ApiApe::ControllerApe.add_around_filter(DummyController, :load_and_render_ape)
         end
 
         it 'should call the method' do
-          expect_any_instance_of(ApiApe::ControllerResource).to receive(:load_and_render_ape)
+          expect_any_instance_of(ApiApe::ControllerApe).to receive(:load_and_render_ape)
 
-          ApiApe::ControllerResource.add_around_filter(DummyController, :load_and_render_ape)
+          ApiApe::ControllerApe.add_around_filter(DummyController, :load_and_render_ape)
         end
 
         it 'should execute the block when the method yields' do
-          allow_any_instance_of(ApiApe::ControllerResource).to receive(:load_and_render_ape).and_yield
+          allow_any_instance_of(ApiApe::ControllerApe).to receive(:load_and_render_ape).and_yield
           expect_any_instance_of(DummyController).to receive(:dummy_method)
 
-          ApiApe::ControllerResource.add_around_filter(DummyController, :load_and_render_ape)
+          ApiApe::ControllerApe.add_around_filter(DummyController, :load_and_render_ape)
         end
       end
 
@@ -117,7 +117,7 @@ describe ApiApe::ControllerResource do
 
           expect(DummyController).to receive(:around_filter).with(extra_args)
 
-          ApiApe::ControllerResource.add_around_filter(DummyController, :load_and_render_ape, extra_args)
+          ApiApe::ControllerApe.add_around_filter(DummyController, :load_and_render_ape, extra_args)
         end
       end
 
@@ -127,7 +127,7 @@ describe ApiApe::ControllerResource do
 
           expect(DummyController).to receive(:around_filter).with({ only: :only_value })
 
-          ApiApe::ControllerResource.add_around_filter(DummyController, :load_and_render_ape, extra_args)
+          ApiApe::ControllerApe.add_around_filter(DummyController, :load_and_render_ape, extra_args)
         end
       end
     end
@@ -136,7 +136,7 @@ describe ApiApe::ControllerResource do
       it 'should call the before_filter method on the class provided' do
         expect(DummyController).to receive(:prepend_around_filter).with({})
 
-        ApiApe::ControllerResource.add_around_filter(DummyController, :load_and_render_ape, prepend: true)
+        ApiApe::ControllerApe.add_around_filter(DummyController, :load_and_render_ape, prepend: true)
       end
     end
   end

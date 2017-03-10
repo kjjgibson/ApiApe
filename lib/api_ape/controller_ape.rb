@@ -1,5 +1,5 @@
 module ApiApe
-  class ControllerResource
+  class ControllerApe
 
     require 'api_ape/ape_renderer'
 
@@ -8,7 +8,7 @@ module ApiApe
       resource_name = args.first
       filter_method = options.delete(:prepend) ? :prepend_before_filter : :before_filter
       controller_class.send(filter_method, options.slice(:only, :except, :if, :unless)) do |controller|
-        ControllerResource.new(controller, resource_name, options.except(:only, :except, :if, :unless)).send(method)
+        ControllerApe.new(controller, resource_name, options.except(:only, :except, :if, :unless)).send(method)
       end
     end
 
@@ -17,7 +17,7 @@ module ApiApe
       resource_name = args.first
       filter_method = options.delete(:prepend) ? :prepend_around_filter : :around_filter
       controller_class.send(filter_method, options.slice(:only, :except, :if, :unless)) do |controller, block|
-        ControllerResource.new(controller, resource_name, options.except(:only, :except, :if, :unless)).send(method, controller) { block.call }
+        ControllerApe.new(controller, resource_name, options.except(:only, :except, :if, :unless)).send(method, controller) { block.call }
       end
     end
 

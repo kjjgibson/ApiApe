@@ -1,7 +1,7 @@
 module ApiApe
 
   # This module is automatically included into all controllers.
-  module ControllerAdditions
+  module ApeControllerAdditions
 
     module ClassMethods
 
@@ -15,7 +15,7 @@ module ApiApe
       #   end
       #
       def load_and_render_ape(*args)
-        ControllerResource.add_around_filter(self, :load_and_render_ape, *args)
+        ControllerApe.add_around_filter(self, :load_and_render_ape, *args)
       end
 
       # Sets up a before filter which loads the model resource into an instance variable.
@@ -104,7 +104,7 @@ module ApiApe
       #   Passing +true+ will use prepend_before_filter instead of a normal before_filter.
       #
       def load_resource(*args)
-        ControllerResource.add_before_filter(self, :load_resource, *args)
+        ControllerApe.add_before_filter(self, :load_resource, *args)
       end
 
       # Sets up a filter which renders the current resource after the controller action has been executed.
@@ -114,7 +114,7 @@ module ApiApe
       #   end
       #
       def render_ape(*args)
-        ControllerResource.add_around_filter(self, :render_ape, *args)
+        ControllerApe.add_around_filter(self, :render_ape, *args)
       end
 
       # Skip both the loading and rendering behavior of ApiApe for this given controller. This is primarily
@@ -194,6 +194,6 @@ end
 
 if defined? ActionController::Base
   ActionController::Base.class_eval do
-    include ApiApe::ControllerAdditions
+    include ApiApe::ApeControllerAdditions
   end
 end

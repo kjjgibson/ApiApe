@@ -1,10 +1,10 @@
 require 'rails_helper'
-require 'api_ape/controller_additions'
-require 'api_ape/controller_resource'
+require 'api_ape/ape_controller_additions'
+require 'api_ape/controller_ape'
 
-describe ApiApe::ControllerAdditions do
+describe ApiApe::ApeControllerAdditions do
 
-  let(:controller_additions) { ActionController::Base.new { include ApiApe::ControllerAdditions } }
+  let(:controller_additions) { ActionController::Base.new { include ApiApe::ApeControllerAdditions } }
 
   describe 'class methods' do
     it 'should include all class methods' do
@@ -18,24 +18,24 @@ describe ApiApe::ControllerAdditions do
   end
 
   describe '.load_and_render_ape' do
-    it 'should call the ControllerResource to add a filter' do
-      expect(ApiApe::ControllerResource).to receive(:add_around_filter).with(controller_additions.class, :load_and_render_ape, arg: 'Aaargh!')
+    it 'should call the ControllerApe to add a filter' do
+      expect(ApiApe::ControllerApe).to receive(:add_around_filter).with(controller_additions.class, :load_and_render_ape, arg: 'Aaargh!')
 
       controller_additions.class.load_and_render_ape(arg: 'Aaargh!')
     end
   end
 
   describe '.load_resource' do
-    it 'should call the ControllerResource to add a filter' do
-      expect(ApiApe::ControllerResource).to receive(:add_before_filter).with(controller_additions.class, :load_resource, arg: 'Aaargh!')
+    it 'should call the ControllerApe to add a filter' do
+      expect(ApiApe::ControllerApe).to receive(:add_before_filter).with(controller_additions.class, :load_resource, arg: 'Aaargh!')
 
       controller_additions.class.load_resource(arg: 'Aaargh!')
     end
   end
 
   describe '.render_ape' do
-    it 'should call the ControllerResource to add a filter' do
-      expect(ApiApe::ControllerResource).to receive(:add_around_filter).with(controller_additions.class, :render_ape, arg: 'Aaargh!')
+    it 'should call the ControllerApe to add a filter' do
+      expect(ApiApe::ControllerApe).to receive(:add_around_filter).with(controller_additions.class, :render_ape, arg: 'Aaargh!')
 
       controller_additions.class.render_ape(arg: 'Aaargh!')
     end
