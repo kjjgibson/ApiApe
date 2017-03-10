@@ -1,11 +1,10 @@
 require 'rails_helper'
-require 'api_ape/ape_controller'
+require 'api_ape/ape_renderer'
 
-describe ApiApe::ApeController, type: :controller do
+describe ApiApe::ApeRenderer do
 
   describe '#render_ape' do
     class DummyApeController < ApplicationController
-      include ApiApe::ApeController
     end
 
     class DummyModel
@@ -39,11 +38,9 @@ describe ApiApe::ApeController, type: :controller do
       end
     end
 
-    let(:ape_controller) { DummyApeController.new }
-
-    before do
-      allow(ape_controller).to receive(:params).and_return(params)
-    end
+    let(:controller) { DummyApeController.new }
+    let(:ape_renderer) { ApiApe::ApeRenderer.new(permitted_fields) }
+    let(:permitted_fields) { nil }
 
     context 'with fields param' do
 
@@ -55,33 +52,29 @@ describe ApiApe::ApeController, type: :controller do
 
           context 'permitted fields not specified' do
             it 'should call render with the correct json including all fields requested' do
-              expect(ape_controller).to receive(:render).with(json: { name: 'Name', description: 'Description' })
+              expect(controller).to receive(:render).with(json: { name: 'Name', description: 'Description' })
 
-              ape_controller.render_ape(model)
+              ape_renderer.render_ape(controller, params, model)
             end
           end
 
           context 'only one field permitted' do
-            before do
-              ape_controller.permitted_fields([:name])
-            end
+            let(:permitted_fields) { [:name] }
 
             it 'should call render with the correct json including only permitted fields' do
-              expect(ape_controller).to receive(:render).with(json: { name: 'Name' })
+              expect(controller).to receive(:render).with(json: { name: 'Name' })
 
-              ape_controller.render_ape(model)
+              ape_renderer.render_ape(controller, params, model)
             end
           end
 
           context 'no fields permitted' do
-            before do
-              ape_controller.permitted_fields([])
-            end
+            let(:permitted_fields) { [] }
 
             it 'should call render with the correct json including no fields' do
-              expect(ape_controller).to receive(:render).with(json: {})
+              expect(controller).to receive(:render).with(json: {})
 
-              ape_controller.render_ape(model)
+              ape_renderer.render_ape(controller, params, model)
             end
           end
         end
@@ -91,68 +84,60 @@ describe ApiApe::ApeController, type: :controller do
 
           context 'permitted fields not specified' do
             it 'should call render with the correct json including all fields requested' do
-              expect(ape_controller).to receive(:render).with(json: {
+              expect(controller).to receive(:render).with(json: {
                   example_single_association:
                       {
                           nested_field1: 1, nested_field2: 2
                       }
               })
 
-              ape_controller.render_ape(model)
+              ape_renderer.render_ape(controller, params, model)
             end
           end
 
           context 'both nested fields explicitly permitted' do
-            before do
-              ape_controller.permitted_fields([example_single_association: [:nested_field1, :nested_field2]])
-            end
+            let(:permitted_fields) { [example_single_association: [:nested_field1, :nested_field2]] }
 
             it 'should call render with the correct json including only permitted fields' do
-              expect(ape_controller).to receive(:render).with(json: {
+              expect(controller).to receive(:render).with(json: {
                   example_single_association: { nested_field1: 1, nested_field2: 2 }
               })
 
-              ape_controller.render_ape(model)
+              ape_renderer.render_ape(controller, params, model)
             end
           end
 
           context 'one nested field not permitted' do
-            before do
-              ape_controller.permitted_fields([example_single_association: :nested_field1])
-            end
+            let(:permitted_fields) { [example_single_association: :nested_field1] }
 
             it 'should call render with the correct json including only permitted fields' do
-              expect(ape_controller).to receive(:render).with(json: {
+              expect(controller).to receive(:render).with(json: {
                   example_single_association: { nested_field1: 1 }
               })
 
-              ape_controller.render_ape(model)
+              ape_renderer.render_ape(controller, params, model)
             end
           end
 
           context 'no nested fields permitted' do
-            before do
-              ape_controller.permitted_fields([:example_single_association])
-            end
+            let(:permitted_fields) { [:example_single_association] }
 
             it 'should call render with the correct json including only permitted fields' do
-              expect(ape_controller).to receive(:render).with(json: {
+              expect(controller).to receive(:render).with(json: {
                   example_single_association: {}
               })
 
-              ape_controller.render_ape(model)
+              ape_renderer.render_ape(controller, params, model)
             end
           end
 
           context 'no fields permitted' do
-            before do
-              ape_controller.permitted_fields([])
-            end
+            let(:permitted_fields) { [] }
 
             it 'should call render with the correct json including only permitted fields' do
-              expect(ape_controller).to receive(:render).with(json: {})
+              expect(controller).to receive(:render).with(json: {})
 
-              ape_controller.render_ape(model)
+              ape_renderer.render_ape(controller, params, model)
             end
           end
         end
@@ -162,7 +147,7 @@ describe ApiApe::ApeController, type: :controller do
 
           context 'permitted fields not specified' do
             it 'should call render with the correct json including all fields' do
-              expect(ape_controller).to receive(:render).with(json: {
+              expect(controller).to receive(:render).with(json: {
                   example_single_association:
                       {
                           nested_field1: 1,
@@ -175,17 +160,15 @@ describe ApiApe::ApeController, type: :controller do
                       }
               })
 
-              ape_controller.render_ape(model)
+              ape_renderer.render_ape(controller, params, model)
             end
           end
 
           context 'with all fields explicitly permitted' do
-            before do
-              ape_controller.permitted_fields([example_single_association: [:nested_field1, :nested_field2, example_doubly_nested_association: [:nested_field1, :nested_field2]]])
-            end
+            let(:permitted_fields) { [example_single_association: [:nested_field1, :nested_field2, example_doubly_nested_association: [:nested_field1, :nested_field2]]] }
 
             it 'should call render with the correct json including all fields' do
-              expect(ape_controller).to receive(:render).with(json: {
+              expect(controller).to receive(:render).with(json: {
                   example_single_association:
                       {
                           nested_field1: 1,
@@ -198,55 +181,49 @@ describe ApiApe::ApeController, type: :controller do
                       }
               })
 
-              ape_controller.render_ape(model)
+              ape_renderer.render_ape(controller, params, model)
             end
           end
 
           context 'with one doubly nested field permitted' do
-            before do
-              ape_controller.permitted_fields([example_single_association: [example_doubly_nested_association: :nested_field1]])
-            end
+            let(:permitted_fields) { [example_single_association: [example_doubly_nested_association: :nested_field1]] }
 
             it 'should call render with the correct json including only the allowed fields' do
-              expect(ape_controller).to receive(:render).with(json: {
+              expect(controller).to receive(:render).with(json: {
                   example_single_association:
                       {
                           example_doubly_nested_association: { nested_field1: 5 }
                       }
               })
 
-              ape_controller.render_ape(model)
+              ape_renderer.render_ape(controller, params, model)
             end
           end
 
           context 'with both double nested fields permitted' do
-            before do
-              ape_controller.permitted_fields([example_single_association: [example_doubly_nested_association: [:nested_field1, :nested_field2]]])
-            end
+            let(:permitted_fields) { [example_single_association: [example_doubly_nested_association: [:nested_field1, :nested_field2]]] }
 
             it 'should call render with the correct json including only the allowed fields' do
-              expect(ape_controller).to receive(:render).with(json: {
+              expect(controller).to receive(:render).with(json: {
                   example_single_association:
                       {
                           example_doubly_nested_association: { nested_field1: 5, nested_field2: 6 }
                       }
               })
 
-              ape_controller.render_ape(model)
+              ape_renderer.render_ape(controller, params, model)
             end
           end
 
           context 'with the double nested association not permitted' do
-            before do
-              ape_controller.permitted_fields([:example_single_association])
-            end
+            let(:permitted_fields) { [:example_single_association] }
 
             it 'should call render with the correct json including only the allowed fields' do
-              expect(ape_controller).to receive(:render).with(json: {
+              expect(controller).to receive(:render).with(json: {
                   example_single_association: {}
               })
 
-              ape_controller.render_ape(model)
+              ape_renderer.render_ape(controller, params, model)
             end
           end
         end
@@ -255,14 +232,14 @@ describe ApiApe::ApeController, type: :controller do
           let(:params) { { fields: 'example_many_association{nested_field1,nested_field2}' } }
 
           it 'should call render with the correct json' do
-            expect(ape_controller).to receive(:render).with(json: {
+            expect(controller).to receive(:render).with(json: {
                 example_many_association: [
                     { nested_field1: 1, nested_field2: 2 },
                     { nested_field1: 3, nested_field2: 4 }
                 ]
             })
 
-            ape_controller.render_ape(model)
+            ape_renderer.render_ape(controller, params, model)
           end
         end
       end
@@ -275,27 +252,25 @@ describe ApiApe::ApeController, type: :controller do
 
           context 'permitted fields not specified' do
             it 'should call render with the correct json including all fields' do
-              expect(ape_controller).to receive(:render).with(json: [
+              expect(controller).to receive(:render).with(json: [
                   { name: 'Name1', description: 'Description1' },
                   { name: 'Name2', description: 'Description2' }
               ])
 
-              ape_controller.render_ape(models)
+              ape_renderer.render_ape(controller, params, models)
             end
           end
 
           context 'single field permitted' do
-            before do
-              ape_controller.permitted_fields([:name])
-            end
+            let(:permitted_fields) { [:name] }
 
             it 'should call render with the correct json including only the permitted fields' do
-              expect(ape_controller).to receive(:render).with(json: [
+              expect(controller).to receive(:render).with(json: [
                   { name: 'Name1' },
                   { name: 'Name2' }
               ])
 
-              ape_controller.render_ape(models)
+              ape_renderer.render_ape(controller, params, models)
             end
           end
         end
@@ -305,27 +280,25 @@ describe ApiApe::ApeController, type: :controller do
 
           context 'permitted fields not specified' do
             it 'should call render with the correct json including all fields' do
-              expect(ape_controller).to receive(:render).with(json:
-                                                                  [{ example_single_association: { nested_field1: 1, nested_field2: 2 } },
-                                                                   { example_single_association: { nested_field1: 1, nested_field2: 2 } }
-                                                                  ])
+              expect(controller).to receive(:render).with(json:
+                                                              [{ example_single_association: { nested_field1: 1, nested_field2: 2 } },
+                                                               { example_single_association: { nested_field1: 1, nested_field2: 2 } }
+                                                              ])
 
-              ape_controller.render_ape(models)
+              ape_renderer.render_ape(controller, params, models)
             end
           end
 
           context 'single nested field permitted' do
-            before do
-              ape_controller.permitted_fields([example_single_association: :nested_field1])
-            end
+            let(:permitted_fields) { [example_single_association: :nested_field1] }
 
             it 'should call render with the correct json including only the permitted fields' do
-              expect(ape_controller).to receive(:render).with(json:
-                                                                  [{ example_single_association: { nested_field1: 1 } },
-                                                                   { example_single_association: { nested_field1: 1 } }
-                                                                  ])
+              expect(controller).to receive(:render).with(json:
+                                                              [{ example_single_association: { nested_field1: 1 } },
+                                                               { example_single_association: { nested_field1: 1 } }
+                                                              ])
 
-              ape_controller.render_ape(models)
+              ape_renderer.render_ape(controller, params, models)
             end
           end
         end
@@ -335,11 +308,12 @@ describe ApiApe::ApeController, type: :controller do
     context 'without fields param' do
       let(:params) { {} }
       let(:model) { DummyModel.new('Name', 'Description') }
+      let(:permitted_fields) { [] }
 
       it 'should call render' do
-        expect(ape_controller).to receive(:render).with(no_args())
+        expect(controller).to receive(:render).with(no_args())
 
-        ape_controller.render_ape(model)
+        ape_renderer.render_ape(controller, params, model)
       end
     end
 

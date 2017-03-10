@@ -1,5 +1,5 @@
 module ApiApe
-  class ControllerResource
+  class ControllerApe
 
     require 'api_ape/ape_renderer'
 
@@ -8,16 +8,16 @@ module ApiApe
       resource_name = args.first
       filter_method = options.delete(:prepend) ? :prepend_before_filter : :before_filter
       controller_class.send(filter_method, options.slice(:only, :except, :if, :unless)) do |controller|
-        ControllerResource.new(controller, resource_name, options.except(:only, :except, :if, :unless)).send(method)
+        ControllerApe.new(controller, resource_name, options.except(:only, :except, :if, :unless)).send(method)
       end
     end
 
     def self.add_around_filter(controller_class, method, *args)
       options = args.extract_options!
       resource_name = args.first
-      filter_method = options.delete(:prepend) ? prepend_around_filter : :around_filter
+      filter_method = options.delete(:prepend) ? :prepend_around_filter : :around_filter
       controller_class.send(filter_method, options.slice(:only, :except, :if, :unless)) do |controller, block|
-        ControllerResource.new(controller, resource_name, options.except(:only, :except, :if, :unless)).send(method, controller) { block.call }
+        ControllerApe.new(controller, resource_name, options.except(:only, :except, :if, :unless)).send(method, controller) { block.call }
       end
     end
 
@@ -39,29 +39,18 @@ module ApiApe
     end
 
     def load_and_render_ape(controller)
-      controller.class.send(:alias_method, :render_old, :render)
-      controller.class.send(:define_method, :render) {}
-
+      stub_render_method(controller)
       load_resource
-
       yield
-
-      controller.class.send(:alias_method, :render, :render_old)
-      controller.class.send(:remove_method, :render_old)
-
-      ApeRenderer.new.render_ape(@controller, @params, @options, resource_instance || collection_instance)
+      unstub_render_method(controller)
+      ApeRenderer.new(@options[:permitted_fields]).render_ape(@controller, @params, resource_instance || collection_instance)
     end
 
     def render_ape(controller)
-      controller.class.send(:alias_method, :render_old, :render)
-      controller.class.send(:define_method, :render) {}
-
+      stub_render_method(controller)
       yield
-
-      controller.class.send(:alias_method, :render, :render_old)
-      controller.class.send(:remove_method, :render_old)
-
-      ApeRenderer.new.render_ape(@controller, @params, @options, resource_instance || collection_instance)
+      unstub_render_method(controller)
+      ApeRenderer.new(@options[:permitted_fields]).render_ape(@controller, @params, resource_instance || collection_instance)
     end
 
     def skip?(behavior)
@@ -254,6 +243,16 @@ module ApiApe
 
     def extract_key(value)
       value.to_s.underscore.gsub('/', '_')
+    end
+
+    def stub_render_method(controller)
+      controller.class.send(:alias_method, :render_old, :render)
+      controller.class.send(:define_method, :render) {}
+    end
+
+    def unstub_render_method(controller)
+      controller.class.send(:alias_method, :render, :render_old)
+      controller.class.send(:remove_method, :render_old)
     end
   end
 end

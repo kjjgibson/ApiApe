@@ -1,10 +1,10 @@
 require 'rails_helper'
-require 'api_ape/controller_additions'
-require 'api_ape/controller_resource'
+require 'api_ape/ape_controller_additions'
+require 'api_ape/controller_ape'
 
-describe ApiApe::ControllerAdditions do
+describe ApiApe::ApeControllerAdditions do
 
-  let(:controller_additions) { ActionController::Base.new { include ApiApe::ControllerAdditions } }
+  let(:controller_additions) { ActionController::Base.new { include ApiApe::ApeControllerAdditions } }
 
   describe 'class methods' do
     it 'should include all class methods' do
@@ -18,24 +18,24 @@ describe ApiApe::ControllerAdditions do
   end
 
   describe '.load_and_render_ape' do
-    it 'should call the ControllerResource to add a filter' do
-      expect(ApiApe::ControllerResource).to receive(:add_around_filter).with(controller_additions.class, :load_and_render_ape, arg: 'Aaargh!')
+    it 'should call the ControllerApe to add a filter' do
+      expect(ApiApe::ControllerApe).to receive(:add_around_filter).with(controller_additions.class, :load_and_render_ape, arg: 'Aaargh!')
 
       controller_additions.class.load_and_render_ape(arg: 'Aaargh!')
     end
   end
 
   describe '.load_resource' do
-    it 'should call the ControllerResource to add a filter' do
-      expect(ApiApe::ControllerResource).to receive(:add_before_filter).with(controller_additions.class, :load_resource, arg: 'Aaargh!')
+    it 'should call the ControllerApe to add a filter' do
+      expect(ApiApe::ControllerApe).to receive(:add_before_filter).with(controller_additions.class, :load_resource, arg: 'Aaargh!')
 
       controller_additions.class.load_resource(arg: 'Aaargh!')
     end
   end
 
   describe '.render_ape' do
-    it 'should call the ControllerResource to add a filter' do
-      expect(ApiApe::ControllerResource).to receive(:add_around_filter).with(controller_additions.class, :render_ape, arg: 'Aaargh!')
+    it 'should call the ControllerApe to add a filter' do
+      expect(ApiApe::ControllerApe).to receive(:add_around_filter).with(controller_additions.class, :render_ape, arg: 'Aaargh!')
 
       controller_additions.class.render_ape(arg: 'Aaargh!')
     end
@@ -88,7 +88,7 @@ describe ApiApe::ControllerAdditions do
     context 'no args' do
       context 'class permitted_fields is nil' do
         it 'should call the render_ape method' do
-          expect_any_instance_of(ApeRenderer).to receive(:render_ape).with(controller_additions, params, {}, object_to_render)
+          expect_any_instance_of(ApiApe::ApeRenderer).to receive(:render_ape).with(controller_additions, params, object_to_render)
 
           controller_additions.render_ape(object_to_render)
         end
@@ -100,7 +100,8 @@ describe ApiApe::ControllerAdditions do
         end
 
         it 'should use the class permitted fields' do
-          expect_any_instance_of(ApeRenderer).to receive(:render_ape).with(controller_additions, params, { permitted_fields: [:title, :description] }, object_to_render)
+          expect(ApiApe::ApeRenderer).to receive(:new).with([:title, :description]).and_call_original
+          expect_any_instance_of(ApiApe::ApeRenderer).to receive(:render_ape).with(controller_additions, params, object_to_render)
 
           controller_additions.render_ape(object_to_render)
         end
@@ -110,7 +111,8 @@ describe ApiApe::ControllerAdditions do
     context 'with permitted_fields arg' do
       context 'class permitted_fields is nil' do
         it 'should use the permitted fields' do
-          expect_any_instance_of(ApeRenderer).to receive(:render_ape).with(controller_additions, params, { permitted_fields: [:title] }, object_to_render)
+          expect(ApiApe::ApeRenderer).to receive(:new).with([:title]).and_call_original
+          expect_any_instance_of(ApiApe::ApeRenderer).to receive(:render_ape).with(controller_additions, params, object_to_render)
 
           controller_additions.render_ape(object_to_render, permitted_fields: [:title])
         end
@@ -122,7 +124,8 @@ describe ApiApe::ControllerAdditions do
         end
 
         it 'should use the permitted fields passed in' do
-          expect_any_instance_of(ApeRenderer).to receive(:render_ape).with(controller_additions, params, { permitted_fields: [:title] }, object_to_render)
+          expect(ApiApe::ApeRenderer).to receive(:new).with([:title]).and_call_original
+          expect_any_instance_of(ApiApe::ApeRenderer).to receive(:render_ape).with(controller_additions, params, object_to_render)
 
           controller_additions.render_ape(object_to_render, permitted_fields: [:title])
         end

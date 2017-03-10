@@ -1,6 +1,6 @@
 require 'rails_helper'
 
-# Integration specs for ControllerAdditions and ControllerResources
+# Integration specs for ApeControllerAdditions and ControllerResources
 # We use a dummy Blog model and BlogsController so that we can test end-to-end
 describe BlogsController do
 
