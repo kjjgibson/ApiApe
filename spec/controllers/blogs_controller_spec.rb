@@ -11,6 +11,10 @@ describe BlogsController do
   let!(:blog) { Blog.create(title: 'Title1', description: 'Description1') }
   let!(:blog2) { Blog.create(title: 'Title2', description: 'Description2') }
 
+  before :each do
+    request.env["HTTP_ACCEPT"] = 'application/json'
+  end
+
   context 'load_resource' do
     # Update the BlogsControllerClass so that it calls load_resource
     controller(BlogsController) do
@@ -93,7 +97,9 @@ describe BlogsController do
         it 'should render the correct json' do
           get :index, request_params
 
-          expect(response_body).to eq([{ title: 'Title1', description: 'Description1' }, { title: 'Title2', description: 'Description2' }])
+          expect(response_body).to eq({ data:
+                                            [{ title: 'Title1', description: 'Description1' },
+                                             { title: 'Title2', description: 'Description2' }] })
         end
       end
     end
@@ -157,7 +163,79 @@ describe BlogsController do
           end
         end
       end
+    end
 
+
+    context 'with metadata param' do
+      # Update the BlogsControllerClass so that it calls render_ape
+      controller(BlogsController) do
+        render_ape
+      end
+
+      let(:metadata) { { fields: ['id', 'title', 'description', 'content', 'created_at', 'updated_at'],
+                         associations: ['posts'] } }
+
+      context 'with fields param also' do
+        describe '#show' do
+          before do
+            controller.instance_variable_set(:@blog, blog)
+          end
+
+          it 'should render the correct json' do
+            get :show, id: blog.id, fields: fields, metadata: 'true'
+
+            expect(response_body).to eq({ title: blog.title, description: blog.description,
+                                          metadata: metadata })
+          end
+        end
+
+        describe '#index' do
+          before do
+            controller.instance_variable_set(:@blogs, [blog, blog2])
+          end
+
+          it 'should render the correct json' do
+            get :index, fields: fields, metadata: 'true'
+
+            expect(response_body).to eq({ data:
+                                              [{ title: blog.title, description: blog.description },
+                                               { title: blog2.title, description: blog2.description }],
+                                          metadata: metadata })
+          end
+        end
+      end
+
+      context 'without fields param' do
+        describe '#show' do
+          before do
+            controller.instance_variable_set(:@blog, blog)
+          end
+
+          it 'should render the correct json' do
+            get :show, id: blog.id, metadata: 'true'
+
+            expect(response_body).to eq({ title: blog.title, description: blog.description,
+                                          metadata: {
+                                              fields: ['id', 'title', 'description', 'content', 'created_at', 'updated_at'],
+                                              associations: ['posts'] } })
+          end
+        end
+
+        describe '#index' do
+          before do
+            controller.instance_variable_set(:@blogs, [blog, blog2])
+          end
+
+          it 'should render the correct json' do
+            get :index, metadata: 'true'
+
+            expect(response_body).to eq({ data:
+                                              [{ title: blog.title },
+                                               { title: blog2.title }],
+                                          metadata: metadata })
+          end
+        end
+      end
     end
   end
 
@@ -191,7 +269,9 @@ describe BlogsController do
       it 'should render the correct json' do
         get :index, request_params
 
-        expect(response_body).to eq([{ title: 'Title1', description: 'Description1' }, { title: 'Title2', description: 'Description2' }])
+        expect(response_body).to eq({ data:
+                                          [{ title: 'Title1', description: 'Description1' },
+                                           { title: 'Title2', description: 'Description2' }] })
       end
     end
   end
