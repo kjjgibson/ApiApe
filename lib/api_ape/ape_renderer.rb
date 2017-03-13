@@ -1,10 +1,15 @@
 module ApiApe
-  module ApeController
+  class ApeRenderer
+
+    module OrderTypes
+      CHRONOLOGICAL = :chronological
+      REVERSE_CHRONOLOGICAL = :reverse_chronological
+    end
 
     attr_reader :permitted_fields
 
-    def permitted_fields(fields)
-      @permitted_fields = fields
+    def initialize(permitted_fields)
+      @permitted_fields = permitted_fields
     end
 
     # Render a response for an object.
@@ -14,20 +19,22 @@ module ApiApe
     #
     # === Parameters
     #
-    # * +obj+ - The object to render
-    def render_ape(obj)
+    # * +controller+ - The Controller which to call render on
+    # * +params+ - A hash of params that should contain a :fields key
+    # * +render_target+ - An object that should respond to the fields requested
+    def render_ape(controller, params, render_target)
       fields_param = params[:fields]
 
       if fields_param.present?
         # If the request contained a "fields" query param then we need to
         #  construct the response JSON based on the fields that were asked for.
-        response = response_for_fields(obj, fields_param, @permitted_fields)
+        response = response_for_fields(render_target, fields_param, @permitted_fields)
 
-        render json: response
+        controller.send(:render, json: response)
       else
         # If we didn't receive a "fields" query param then we can just do the default
         #  behaviour which is to just call render and let the caller figure out what should be rendered
-        render
+        controller.send(:render)
       end
     end
 
@@ -89,6 +96,7 @@ module ApiApe
         # Look for nested fields which will be present inside curly braces
         # E.g. "field{nested_field}" => "nested_field"
         nested_fields_string = field.match(/({(.*)})/).try(:[], 2)
+        order_direction = order_direction_for_field(field)
 
         # Get the top level field without the nested fields on the end
         # E.g. "field{nested_field}" => "field"
@@ -99,6 +107,7 @@ module ApiApe
         if nested_fields_string
           # Get the object that the nested fields should be called on
           nested_obj = obj.send(field)
+          nested_obj = order_collection(nested_obj, order_direction)
 
           if is_field_permitted?(permitted_fields, field)
             response[field] = response_for_fields(nested_obj, nested_fields_string, root_for_field(permitted_fields, field))
@@ -182,6 +191,73 @@ module ApiApe
       end
 
       return permitted
+    end
+
+    # Return an order direction (:asc or :desc) based on a field string
+    # The field string should be in the format field.order(chronological|reverse_chronological)
+    # If there is no order section or if the text inside the parenthesis does not match a known value
+    #  then the order direction returned will be nil
+    #
+    # === Parameters
+    #
+    # * +field+ - A field string that may optionally contain an order clause
+    private def order_direction_for_field(field)
+      order_direction = nil
+
+      # Split the field on a "." to see if there's an ordering specified
+      # Ordering's are specified like: field.order(chronological|reverse_chronological)
+      order_string = field.split('.').try(:[], 1)
+
+      if order_string.present?
+        # Get the string between the parenthesis to get the order direction
+        order_type = order_string.match(/(\((.*)\))/).try(:[], 2)
+        if order_type.to_sym == OrderTypes::CHRONOLOGICAL
+          order_direction = :asc
+        elsif order_type.to_sym == OrderTypes::REVERSE_CHRONOLOGICAL
+          order_direction = :desc
+        else
+          #TODO: add warning about an invalid ordering
+        end
+      end
+
+      return order_direction
+    end
+
+    # Optionally order a collection of objects if an +order_direction+ is provided
+    # If the collection responds to order() (i.e. an ActiveRecordRelation) then it is ordered using that method
+    # Otherwise if it responds to each() then it is sorted in memory using sort_by()
+    # If the collection responds to neither then it is not changed.
+    #
+    # If the objects in the collection do not respond to created_at then the collection is unchanged.
+    # TODO: allow user to configure the sort attribute
+    #
+    # === Parameters
+    #
+    # * +collection+ - A collection of objects (should respond to each() or order())
+    # * +order_direction+ - An order direction (either :desc or :asc)
+    private def order_collection(collection, order_direction)
+      if order_direction.present?
+        if collection.respond_to?(:order)
+          begin
+            collection = collection.order(created_at: order_direction)
+          rescue NoMethodError => e
+            #TODO: add warning about ordering an association that has no created_at date
+          end
+        elsif collection.respond_to?(:each)
+          begin
+            collection.sort_by!(&:created_at)
+            if order_direction == :asc
+              collection.reverse!
+            end
+          rescue NoMethodError => e
+            #TODO: add warning about sorting an association that has no created_at date
+          end
+        else
+          #TODO: add warning about ordering an association that cannot be ordered
+        end
+      end
+
+      return collection
     end
 
   end
