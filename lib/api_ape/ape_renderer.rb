@@ -3,6 +3,7 @@ module ApiApe
 
     require 'api_ape/ape_metadata'
     require 'api_ape/ape_fields'
+    require 'api_ape/ape_debugger'
 
     attr_reader :permitted_fields
 
@@ -77,11 +78,11 @@ module ApiApe
               controller.response.body = body.to_json
             else
               # If the body is a JSON Array and not an object then we can't add the metadata to it
-              # TODO: add a debug object to explain that metadata doesn't work with a JSON Array
+              ApiApe::ApeDebugger.instance.log_warning(I18n.t('api_ape.debug.warning.metadata_for_json_array'))
             end
           rescue JSON::ParserError => e
             # The response is not returning JSON so we can't add the metadata
-            # TODO: add a debug object to explain that metadata doesn't work with a non json response
+            ApiApe::ApeDebugger.instance.log_warning(I18n.t('api_ape.debug.warning.metadata_for_non_json'))
           end
         end
       end

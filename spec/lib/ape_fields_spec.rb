@@ -1,7 +1,12 @@
 require 'rails_helper'
 require 'api_ape/ape_fields'
+require 'api_ape/ape_debugger'
 
 describe ApiApe::ApeFields do
+
+  before do
+    allow(ApiApe::ApeDebugger.instance).to receive(:log_warning)
+  end
 
   describe '#response_for_fields' do
     class DummyModel
@@ -73,6 +78,12 @@ describe ApiApe::ApeFields do
 
             expect(response).to eq({ name: 'Name' })
           end
+
+          it 'should log a debug warning' do
+            expect(ApiApe::ApeDebugger.instance).to receive(:log_warning).with(I18n.t('api_ape.debug.warning.field_not_permitted', field: 'description'))
+
+            ape_fields.response_for_fields(model, fields, permitted_fields)
+          end
         end
 
         context 'no fields permitted' do
@@ -82,6 +93,13 @@ describe ApiApe::ApeFields do
             response = ape_fields.response_for_fields(model, fields, permitted_fields).deep_symbolize_keys
 
             expect(response).to eq({})
+          end
+
+          it 'should log debug warnings' do
+            expect(ApiApe::ApeDebugger.instance).to receive(:log_warning).with(I18n.t('api_ape.debug.warning.field_not_permitted', field: 'name'))
+            expect(ApiApe::ApeDebugger.instance).to receive(:log_warning).with(I18n.t('api_ape.debug.warning.field_not_permitted', field: 'description'))
+
+            ape_fields.response_for_fields(model, fields, permitted_fields)
           end
         end
       end
@@ -117,6 +135,12 @@ describe ApiApe::ApeFields do
 
             expect(response).to eq({ example_single_association: { nested_field1: 1 } })
           end
+
+          it 'should log a debug warning' do
+            expect(ApiApe::ApeDebugger.instance).to receive(:log_warning).with(I18n.t('api_ape.debug.warning.field_not_permitted', field: 'nested_field2'))
+
+            ape_fields.response_for_fields(model, fields, permitted_fields)
+          end
         end
 
         context 'no nested fields permitted' do
@@ -136,6 +160,12 @@ describe ApiApe::ApeFields do
             response = ape_fields.response_for_fields(model, fields, permitted_fields).deep_symbolize_keys
 
             expect(response).to eq({})
+          end
+
+          it 'should log a debug warning' do
+            expect(ApiApe::ApeDebugger.instance).to receive(:log_warning).with(I18n.t('api_ape.debug.warning.field_not_permitted', field: 'example_single_association'))
+
+            ape_fields.response_for_fields(model, fields, permitted_fields)
           end
         end
       end
@@ -194,6 +224,12 @@ describe ApiApe::ApeFields do
                                          }
                                    })
           end
+
+          it 'should log a debug warning' do
+            expect(ApiApe::ApeDebugger.instance).to receive(:log_warning).with(I18n.t('api_ape.debug.warning.field_not_permitted', field: 'nested_field2'))
+
+            ape_fields.response_for_fields(model, fields, permitted_fields)
+          end
         end
 
         context 'with both double nested fields permitted' do
@@ -217,6 +253,12 @@ describe ApiApe::ApeFields do
             response = ape_fields.response_for_fields(model, fields, permitted_fields).deep_symbolize_keys
 
             expect(response).to eq({ example_single_association: {} })
+          end
+
+          it 'should log a debug warning' do
+            expect(ApiApe::ApeDebugger.instance).to receive(:log_warning).with(I18n.t('api_ape.debug.warning.field_not_permitted', field: 'example_doubly_nested_association'))
+
+            ape_fields.response_for_fields(model, fields, permitted_fields)
           end
         end
       end

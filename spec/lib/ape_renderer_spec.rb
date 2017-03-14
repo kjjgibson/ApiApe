@@ -1,5 +1,6 @@
 require 'rails_helper'
 require 'api_ape/ape_renderer'
+require 'api_ape/ape_debugger'
 
 describe ApiApe::ApeRenderer do
 
@@ -91,8 +92,18 @@ describe ApiApe::ApeRenderer do
         context 'response body is a json array' do
           let(:response_body) { [{ field: :value }].to_json }
 
+          before do
+            allow(ApiApe::ApeDebugger.instance).to receive(:log_warning)
+          end
+
           it 'should not change the response body' do
             expect(response_double).not_to receive(:body=)
+
+            ape_renderer.render_ape(controller, params, model)
+          end
+
+          it 'should log a warning' do
+            expect(ApiApe::ApeDebugger.instance).to receive(:log_warning).with(I18n.t('api_ape.debug.warning.metadata_for_json_array'))
 
             ape_renderer.render_ape(controller, params, model)
           end
@@ -101,8 +112,18 @@ describe ApiApe::ApeRenderer do
         context 'response body is not json' do
           let(:response_body) { 'invalid_json' }
 
+          before do
+            allow(ApiApe::ApeDebugger.instance).to receive(:log_warning)
+          end
+
           it 'should not change the response body' do
             expect(response_double).not_to receive(:body=)
+
+            ape_renderer.render_ape(controller, params, model)
+          end
+
+          it 'should log a warning' do
+            expect(ApiApe::ApeDebugger.instance).to receive(:log_warning).with(I18n.t('api_ape.debug.warning.metadata_for_non_json'))
 
             ape_renderer.render_ape(controller, params, model)
           end

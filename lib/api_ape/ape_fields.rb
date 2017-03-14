@@ -2,6 +2,7 @@ module ApiApe
   class ApeFields
 
     require 'api_ape/ape_ordering'
+    require 'api_ape/ape_debugger'
 
     attr_reader :permitted_fields
 
@@ -87,19 +88,19 @@ module ApiApe
         if nested_fields_string
           # Get the object that the nested fields should be called on
           nested_obj = obj.send(field)
-          nested_obj = ApiApe::ApeOrdering.new.order_collection(nested_obj, order_direction)
+          nested_obj = ApiApe::ApeOrdering.new.order_collection(nested_obj, :created_at, order_direction)
 
           if is_field_permitted?(permitted_fields, field)
             # We pass false here to indicate that this is a nested field and not the root object
             response[field] = response_for_fields(nested_obj, nested_fields_string, root_for_field(permitted_fields, field), false)
           else
-            #TODO: add warning to debug object
+            ApiApe::ApeDebugger.instance.log_warning(I18n.t('api_ape.debug.warning.field_not_permitted', field: field))
           end
         else
           if is_field_permitted?(permitted_fields, field)
             response[field] = obj.send(field)
           else
-            #TODO: add warning to debug object
+            ApiApe::ApeDebugger.instance.log_warning(I18n.t('api_ape.debug.warning.field_not_permitted', field: field))
           end
         end
       end

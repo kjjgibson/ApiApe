@@ -2,6 +2,8 @@ module ApiApe
   class ControllerApe
 
     require 'api_ape/ape_renderer'
+    require 'api_ape/ape_ordering'
+    require 'api_ape/ape_debugger'
 
     def self.add_before_filter(controller_class, method, *args)
       options = args.extract_options!
@@ -93,20 +95,12 @@ module ApiApe
       if order_string.present?
         order_parts = order_string.split('(')
         if order_parts.count < 2
-          #TODO: Add a warning that the ordering was malformed
+          ApiApe::ApeDebugger.instance.log_warning(I18n.t('api_ape.debug.warning.malformed_order_clause'))
         else
           order_column = order_parts[0]
           order_direction = order_parts[1].try(:gsub, ')', '')
 
-          if resource_class.column_names.include?(order_column)
-            if ['asc', 'desc'].include?(order_direction)
-              collection = collection.order("#{order_column} #{order_direction}")
-            else
-              #TODO: add a warning that the order direction is invalid
-            end
-          else
-            #TODO: add a warning that the column doesn't exist
-          end
+          collection = ApiApe::ApeOrdering.new.order_collection(collection, order_column, order_direction)
         end
       end
 
