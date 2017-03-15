@@ -1,5 +1,6 @@
 require 'rails_helper'
 require 'api_ape/ape_renderer'
+require 'api_ape/ape_debugger'
 
 describe ApiApe::ApeRenderer do
 
@@ -48,6 +49,49 @@ describe ApiApe::ApeRenderer do
           ape_renderer.render_ape(controller, params, model)
         end
       end
+
+      context 'with debug param' do
+        let(:params) { { fields: fields, debug: debug_mode } }
+        let(:debug_logs) { [ApiApe::ApeDebugLog.new('warning message', 'warning'), ApiApe::ApeDebugLog.new('info message', 'info')] }
+        let(:debug_message) { { __debug__: { messages: expected_messages } } }
+
+        before do
+          allow_any_instance_of(ApiApe::ApeDebugger).to receive(:messages).and_return(debug_logs)
+        end
+
+        context 'debug warning' do
+          let(:debug_mode) { 'warning' }
+          let(:expected_messages) { [{ message: 'warning message', type: 'warning' }] }
+
+          it 'should merge the warning debug messages into the response' do
+            expect(controller).to receive(:render).with({ json: response_hash.merge(debug_message) })
+
+            ape_renderer.render_ape(controller, params, model)
+          end
+        end
+
+        context 'debug info' do
+          let(:debug_mode) { 'info' }
+          let(:expected_messages) { [{ message: 'info message', type: 'info' }] }
+
+          it 'should merge the info debug messages into the response' do
+            expect(controller).to receive(:render).with({ json: response_hash.merge(debug_message) })
+
+            ape_renderer.render_ape(controller, params, model)
+          end
+        end
+
+        context 'debug all' do
+          let(:debug_mode) { 'all' }
+          let(:expected_messages) { [{ message: 'warning message', type: 'warning' }, { message: 'info message', type: 'info' }] }
+
+          it 'should merge all debug messages into the response' do
+            expect(controller).to receive(:render).with({ json: response_hash.merge(debug_message) })
+
+            ape_renderer.render_ape(controller, params, model)
+          end
+        end
+      end
     end
 
     context 'without fields param' do
@@ -91,8 +135,18 @@ describe ApiApe::ApeRenderer do
         context 'response body is a json array' do
           let(:response_body) { [{ field: :value }].to_json }
 
+          before do
+            allow(ApiApe::ApeDebugger.instance).to receive(:log_warning)
+          end
+
           it 'should not change the response body' do
             expect(response_double).not_to receive(:body=)
+
+            ape_renderer.render_ape(controller, params, model)
+          end
+
+          it 'should log a warning' do
+            expect(ApiApe::ApeDebugger.instance).to receive(:log_warning).with(I18n.t('api_ape.debug.warning.extra_data_for_json_array', extra_data_type: :metadata))
 
             ape_renderer.render_ape(controller, params, model)
           end
@@ -101,8 +155,40 @@ describe ApiApe::ApeRenderer do
         context 'response body is not json' do
           let(:response_body) { 'invalid_json' }
 
+          before do
+            allow(ApiApe::ApeDebugger.instance).to receive(:log_warning)
+          end
+
           it 'should not change the response body' do
             expect(response_double).not_to receive(:body=)
+
+            ape_renderer.render_ape(controller, params, model)
+          end
+
+          it 'should log a warning' do
+            expect(ApiApe::ApeDebugger.instance).to receive(:log_warning).with(I18n.t('api_ape.debug.warning.extra_data_for_non_json', extra_data_type: :metadata))
+
+            ape_renderer.render_ape(controller, params, model)
+          end
+        end
+      end
+
+      context 'with debug param' do
+        let(:params) { { debug: 'all' } }
+        let(:debug_info) { { __debug__: { messages: [{ message: 'message', type: 'warning' }] } } }
+        let(:response_double) { double('response') }
+
+        before do
+          allow_any_instance_of(ApiApe::ApeDebugger).to receive(:messages).and_return([ApiApe::ApeDebugLog.new('message', 'warning')])
+          allow(controller).to receive(:response).and_return(response_double)
+          allow(response_double).to receive(:body).and_return(response_body)
+        end
+
+        context 'response body is a json object' do
+          let(:response_body) { { field: :value }.to_json }
+
+          it 'should merge the debug info into the response' do
+            expect(response_double).to receive(:body=).with({ field: :value }.merge(debug_info).to_json)
 
             ape_renderer.render_ape(controller, params, model)
           end

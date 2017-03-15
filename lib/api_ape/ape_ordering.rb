@@ -1,6 +1,8 @@
 module ApiApe
   class ApeOrdering
 
+    require 'api_ape/ape_debugger'
+
     module OrderTypes
       CHRONOLOGICAL = :chronological
       REVERSE_CHRONOLOGICAL = :reverse_chronological
@@ -29,7 +31,7 @@ module ApiApe
         elsif order_type.try(:to_sym) == OrderTypes::REVERSE_CHRONOLOGICAL
           order_direction = :desc
         else
-          #TODO: add warning about an invalid ordering
+          ApiApe::ApeDebugger.instance.log_warning(I18n.t('api_ape.debug.warning.invalid_nested_field_ordering'))
         end
       end
 
@@ -42,32 +44,65 @@ module ApiApe
     # If the collection responds to neither then it is not changed.
     #
     # If the objects in the collection do not respond to created_at then the collection is unchanged.
-    # TODO: allow user to configure the sort attribute
     #
     # === Parameters
     #
     # * +collection+ - A collection of objects (should respond to each() or order())
+    # * +order_field+ - The field by which to order the collection
     # * +order_direction+ - An order direction (either :desc or :asc)
-    def order_collection(collection, order_direction)
-      if order_direction.present?
+    def order_collection(collection, order_field, order_direction)
+      if [:asc, :desc].include?(order_direction.try(:to_sym))
         if collection.respond_to?(:order)
-          begin
-            collection = collection.order(created_at: order_direction)
-          rescue NoMethodError => e
-            #TODO: add warning about ordering an association that has no created_at date
-          end
+          collection = order_by_order(collection, order_field, order_direction)
         elsif collection.respond_to?(:each)
-          begin
-            collection.sort_by!(&:created_at)
-            if order_direction == :asc
-              collection.reverse!
-            end
-          rescue NoMethodError => e
-            #TODO: add warning about sorting an association that has no created_at date
-          end
+          collection = order_by_sort(collection, order_field, order_direction)
         else
-          #TODO: add warning about ordering an association that cannot be ordered
+          ApiApe::ApeDebugger.instance.log_warning(I18n.t('api_ape.debug.warning.unorderable_collection'))
+          Rails.logger.warn("Attempted to order something that wasn't a collection\n Object: #{collection}")
         end
+      else
+        ApiApe::ApeDebugger.instance.log_warning(I18n.t('api_ape.debug.warning.invalid_order_direction'))
+      end
+
+      return collection
+    end
+
+    # Order a collection using the order() method
+    # Do nothing if the objects in the collection don't respond to the order_field
+    #
+    # === Parameters
+    #
+    # * +collection+ - A collection of objects that responds to order()
+    # * +order_field+ - The field by which to order the collection
+    # * +order_direction+ - An order direction (either :desc or :asc)
+    def order_by_order(collection, order_field, order_direction)
+      if collection.model.column_names.include?(order_field.to_s)
+        collection = collection.order(order_field => order_direction)
+      else
+        ApiApe::ApeDebugger.instance.log_warning(I18n.t('api_ape.debug.warning.invalid_order_field'))
+        Rails.logger.warn('Attempted to order a collection that contains object that does not respond to the order field.')
+      end
+
+      return collection
+    end
+
+    # Order a collection using the order() method
+    # Do nothing if the objects in the collection don't respond to the order_field
+    #
+    # === Parameters
+    #
+    # * +collection+ - A collection of objects that responds to each
+    # * +order_field+ - The field by which to order the collection
+    # * +order_direction+ - An order direction (either :desc or :asc)
+    def order_by_sort(collection, order_field, order_direction)
+      begin
+        collection.sort_by!(&order_field)
+        if order_direction == :asc
+          collection.reverse!
+        end
+      rescue NoMethodError => e
+        ApiApe::ApeDebugger.instance.log_warning(I18n.t('api_ape.debug.warning.invalid_order_field'))
+        Rails.logger.warn("Attempted to order a collection that contains object that do not respond to the order field. #{e.message}")
       end
 
       return collection
