@@ -24,7 +24,7 @@ Request attribute filtering allows your end users to specify the attributes that
 
 When designing an API you'd normally need to hardcode the response body to return everything (or a subset of things) which can limit your API.
 
-Old (lame) way:
+Old way:
 ```
 GET /posts/1
 200 OK
@@ -48,8 +48,17 @@ GET /posts/1?fields=title,description
 ```
 
 
-#### I'm feeling extra lazy
-In the simplest situations you can leave everything up to ApiApe. 
+#### Loading and Rendering
+
+In the simplest situations you can leave everything up to ApiApe. Add the load_and_render_ape method to your top level ApplicationController.
+
+```
+class ApplicationController
+    load_and_render_ape
+end
+```
+
+Or if you want a little bit more control, add the load_and_render_ape method to your specific controller.
 
 ```
 class PostsController < ApplicationController
@@ -86,16 +95,16 @@ class PostsController < ApplicationController
 end
 ```
 
-If a user requests an attribute that's not whitelisted then the rendering will continue as normal and the attribute will not be included in the response.
+If a user requests an attribute that's not white listed then the rendering will continue as normal and the attribute will not be included in the response.
 
 
-#### Get Your Filthy Hands off my Resources
+#### Rendering
 
 If you don't want ApiApe to be responsible for loading your resources then replace '*load_and_render_ape*' with '*render_ape*'.
 
 ```
 class PostsController < ApplicationController
-	render_ape
+	render_ape # permitted_fields: [:title, ...]
 	
 	def show
 		@post = Post.find(params[:id])
@@ -106,7 +115,7 @@ end
 ```
 
 
-#### ApiApe is Getting Too Much Action
+#### Skipping Loading or Rendering
 
 If you don't want ApiApe to perform it's magic for every action in your controller then you can skip certain actions.
 
@@ -129,7 +138,7 @@ class PostsController < ApplicationController
 end
 ```
 
-Another option if you want total control is to call the render method manually.
+Another option if you want total control is to call the render method manually. The _render_ape_ method also takes a hash of options where you can specify permitted_fields just like _load_and_render_ape_.
 
 ```
 class PostsController < ApplicationController
@@ -150,7 +159,7 @@ Api consumers can request nested attributes on your models using curly braces. Y
 GET /posts/1?fields=title,description,author{username}
 200 OK
 {
-	"title" : "Amazing new Api Gem",
+	"title" : "Amazing new API Gem",
 	"description" : "Found this great new gem ApiApe...",
 	"author" : {
 		"username" : "Bob"
@@ -160,15 +169,81 @@ GET /posts/1?fields=title,description,author{username}
 
 ### Resource Ordering
 
-*Coming Soon*
+When providing your API consumer with a collection of objects you're often forced to choose a default ordering in which they'll receive them. This puts the burden of ordering into the hands of your API consumers. Let ApiApe do it for you.
+
+#### Top Level Collection
+
+When using the _load_and_render_ape_ or _render_ape_ methods, API consumers can specify an ordering using a request param.
+
+```
+GET /posts?order=title(asc)&fields=title
+200 OK
+[
+    { "title" : "Amazing new API Gem" },
+    { "title" : "Brilliant APIs" }
+]
+```
+
+The collection can be ordered by any field on the object. In the case where you are specifying the permitted fields, only fields that are permitted can be used to order the collection.
+
+### Nested Collections
+
+It's also possible to order a nested collection when specifying nested fields. Add an order clause to the end of a collection when providing the fields request param.
+
+The order clause takes a type which must be one of: 'chronological' or 'reverse_chronological'.
+
+```
+GET /posts/1?fields=title,comments{:message}.order(chronological)
+200 OK
+{
+	"title" : "Amazing new API Gem",
+	"comments" : [...] # Chronologically ordered list of comments
+}
+```
 
 ### Introspection
 
-*Coming Soon*
+API Introspection allows the API consumer to navigate the API without needing to know it ahead of time or without needing to read the docs (as much).
+
+If a request is received with a "metadata" param then the repsonse body will contain metadata about the resource.
+
+By default the metadata will include all columns on your ActiveRecord model as well as all associations. If you've provided a list of permitted parameters then this will be used instead.
+
+```
+GET /posts/1?metadata=true&fields=title
+200 OK
+{
+	"title" : "Amazing new API Gem",
+	"metadata" : {
+	    "fields" : ["title", "description", ...],
+	    "associations" : ["comments", "user", ...]
+	}
+}
+```
+
 
 ### Debug Mode
 
-*Coming Soon*
+Debug mode adds debug information to the response body to assist an API consumer to debug their API requests.
+
+A request with a "debug" param will trigger debug mode. The debug value must be one of: "info", "warning", or "all".
+
+```
+GET /posts/1?debug=warning&fields=title
+200 OK
+{
+	"title" : "Amazing new API Gem",
+	"__debug__" : {
+	    "messages" : [
+	        {
+	            "message" : "Something suspicious happened...",
+	            "type" : "warning"
+	        }
+	    ]
+	}
+}
+```
+
 
 ### Pagination
 
