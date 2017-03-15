@@ -23,8 +23,8 @@ en:
   api_ape:
     debug:
       warning:
-        metadata_for_json_array: The metadata request param is not supported when the response body contains a JSON Array.
-        metadata_for_non_json: The metadata request param is not supported when the response body does not contain JSON.
+        extra_data_for_json_array: The %{extra_data_type} request param is not supported when the response body contains a JSON Array.
+        extra_data_for_non_json: The %{extra_data_type} request param is not supported when the response body does not contain JSON.
         field_not_permitted: Request the field "%{field}" but it was not permitted.
         invalid_nested_field_ordering: Invalid ordering - must be one of "chronological" or "reverse_chronological"
         unorderable_collection: Cannot order by the requested field - field is not orderable

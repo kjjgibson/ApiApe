@@ -7,6 +7,7 @@ module ApiApe
     module DebugType
       WARNING = 'warning'
       INFO = 'info'
+      ALL = 'all'
     end
 
     include Singleton
